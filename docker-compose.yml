@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   pg-backup:
     build: .
@@ -11,8 +9,8 @@ services:
     environment:
       - TZ=UTC
     networks:
-      - postgres-network
+      - pg-backup_test-network
 
 networks:
-  postgres-network:
+  pg-backup_test-network:
     external: true

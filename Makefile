@@ -28,11 +28,11 @@ docker-build:
 
 # Run with Docker Compose
 docker-run:
-	docker-compose up -d
+	docker compose up -d
 
 # Stop Docker containers
 docker-stop:
-	docker-compose down
+	docker compose down
 
 # Download dependencies
 deps:
@@ -57,7 +57,9 @@ help:
 	@echo "  clean         - Clean build artifacts"
 	@echo "  docker-build  - Build Docker image"
 	@echo "  docker-run    - Run with Docker Compose"
+	@echo "  docker-run-full - Run full environment with PostgreSQL"
 	@echo "  docker-stop   - Stop Docker containers"
+	@echo "  docker-stop-full - Stop full environment"
 	@echo "  deps          - Download dependencies"
 	@echo "  test          - Run tests"
 	@echo "  validate-config - Validate configuration files"
