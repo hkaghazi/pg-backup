@@ -58,6 +58,7 @@ func main() {
 
 	backupService := backup.NewService(cfg, storageProvider, appLogger)
 	healthService := health.NewService(appLogger, len(cfg.Database.Databases))
+	healthService.SetBackupService(backupService)
 
 	go healthService.Start(cfg.HealthCheckPort)
 

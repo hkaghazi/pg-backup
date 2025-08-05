@@ -9,6 +9,7 @@ A robust Go application for automatically backing up PostgreSQL databases with f
 - **Scheduled Backups**: Configurable cron-based scheduling
 - **Compression**: Automatic gzip compression of backup files
 - **Health Monitoring**: HTTP endpoints for health checks and status monitoring
+- **Manual Backup Trigger**: HTTP API to trigger backups on-demand
 - **Comprehensive Logging**: Detailed logs with timestamps and operation tracking
 - **Docker Support**: Ready for containerized deployment
 - **CLI Interface**: Command-line options for manual operations
@@ -97,12 +98,37 @@ storage:
 - `./pg-backup -config custom.yaml` - Use custom configuration
 - `./pg-backup -h` - Show help
 
+## Manual Backup Trigger
+
+Trigger a backup manually via HTTP API while the scheduler is running:
+
+```bash
+# Using curl
+curl -X POST http://localhost:8080/trigger
+
+# Using the provided script
+./trigger-backup.sh
+```
+
+**Response on success (202 Accepted):**
+
+```json
+{
+  "status": "accepted",
+  "message": "Backup started successfully",
+  "started_at": "2024-08-05 18:30:45"
+}
+```
+
+The backup runs asynchronously in the background. Check the logs or use the `/status` endpoint to monitor progress.
+
 ## Health Monitoring
 
 When running, the application provides HTTP endpoints:
 
 - `http://localhost:8080/health` - Basic health check
 - `http://localhost:8080/status` - Detailed status information
+- `http://localhost:8080/trigger` - Manually trigger a backup (POST only)
 
 ## Docker Deployment
 

@@ -10,6 +10,8 @@ services:
       - TZ=UTC
     networks:
       - pg-backup_test-network
+    ports:
+      - "8080:8080"
 
 networks:
   pg-backup_test-network:
