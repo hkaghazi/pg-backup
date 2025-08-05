@@ -1,0 +1,6 @@
+pg-backup
+config.yaml
+backups/
+*.log
+.env
+.DS_Store
