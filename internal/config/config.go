@@ -24,6 +24,7 @@ type Config struct {
 		S3 struct {
 			Bucket    string `yaml:"bucket"`
 			Region    string `yaml:"region"`
+			Endpoint  string `yaml:"endpoint"`
 			AccessKey string `yaml:"access_key"`
 			SecretKey string `yaml:"secret_key"`
 		} `yaml:"s3"`
@@ -82,8 +83,8 @@ func validate(config *Config) error {
 	if config.Storage.Type == "local" && config.Storage.Local.Path == "" {
 		return fmt.Errorf("local storage path is required")
 	}
-	if config.Storage.Type == "s3" && (config.Storage.S3.Bucket == "" || config.Storage.S3.Region == "") {
-		return fmt.Errorf("s3 bucket and region are required")
+	if config.Storage.Type == "s3" && (config.Storage.S3.Bucket == "" || config.Storage.S3.Endpoint == "" || config.Storage.S3.AccessKey == "" || config.Storage.S3.SecretKey == "") {
+		return fmt.Errorf("s3 bucket, endpoint, access key and secret key are required")
 	}
 	if config.Schedule == "" {
 		return fmt.Errorf("schedule is required")

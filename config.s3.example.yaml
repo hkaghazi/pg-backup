@@ -30,6 +30,7 @@ storage:
   s3:
     bucket: "my-db-backups"
     region: "us-east-1"
+    endpoint: "s3.amazonaws.com"
     access_key: "AKIAIOSFODNN7EXAMPLE"
     secret_key: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 

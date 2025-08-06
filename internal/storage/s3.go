@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,9 +15,10 @@ type S3 struct {
 	bucket string
 }
 
-func NewS3(bucket, region, accessKey, secretKey string) (*S3, error) {
+func NewS3(bucket, region, endpoint, accessKey, secretKey string) (*S3, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
+		Endpoint:    aws.String(endpoint),
 		Credentials: credentials.NewStaticCredentials(accessKey, secretKey, ""),
 	})
 	if err != nil {
@@ -30,10 +32,24 @@ func NewS3(bucket, region, accessKey, secretKey string) (*S3, error) {
 }
 
 func (s *S3) Store(filename string, data io.Reader) error {
+	// Convert io.Reader to bytes.Reader to ensure proper seeking behavior for S3
+	var body io.ReadSeeker
+	if buf, ok := data.(*bytes.Buffer); ok {
+		// If it's a bytes.Buffer, create a bytes.Reader from its contents
+		body = bytes.NewReader(buf.Bytes())
+	} else {
+		// For other readers, read all data and create bytes.Reader
+		allData, err := io.ReadAll(data)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(allData)
+	}
+
 	_, err := s.client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(filename),
-		Body:   aws.ReadSeekCloser(data),
+		Body:   body,
 	})
 	return err
 }

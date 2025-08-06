@@ -45,7 +45,7 @@ func main() {
 	case "local":
 		storageProvider = storage.NewLocal(cfg.Storage.Local.Path)
 	case "s3":
-		s3Provider, err := storage.NewS3(cfg.Storage.S3.Bucket, cfg.Storage.S3.Region, cfg.Storage.S3.AccessKey, cfg.Storage.S3.SecretKey)
+		s3Provider, err := storage.NewS3(cfg.Storage.S3.Bucket, cfg.Storage.S3.Region, cfg.Storage.S3.Endpoint, cfg.Storage.S3.AccessKey, cfg.Storage.S3.SecretKey)
 		if err != nil {
 			appLogger.Error("Failed to initialize S3 storage: %v", err)
 			os.Exit(1)
