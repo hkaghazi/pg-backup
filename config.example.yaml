@@ -35,3 +35,8 @@ log_file: "./backup.log"
 run_on_start: true
 retention_days: 30
 health_check_port: 8080
+
+# Enable full dump mode to create a single backup file containing
+# all databases, roles, tablespaces, and global objects
+# When enabled, the databases list above is ignored
+full_dump: false

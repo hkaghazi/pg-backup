@@ -35,6 +35,7 @@ type Config struct {
 	RunOnStart      bool   `yaml:"run_on_start"`
 	RetentionDays   int    `yaml:"retention_days"`
 	HealthCheckPort int    `yaml:"health_check_port"`
+	FullDump        bool   `yaml:"full_dump"`
 }
 
 func Load(filename string) (*Config, error) {

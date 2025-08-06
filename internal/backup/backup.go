@@ -31,6 +31,18 @@ func NewService(dbConfig *config.Config, storage storage.Provider, logger *logge
 }
 
 func (s *Service) BackupAll() (int, error) {
+	// Check if full dump is enabled
+	if s.dbConfig.FullDump {
+		s.logger.Info("Full dump mode enabled, creating single backup file for entire server")
+		err := s.backupFullServer()
+		if err != nil {
+			s.logger.Error("Failed to perform full dump: %v", err)
+			return 0, err
+		}
+		s.logger.Info("Full dump completed successfully")
+		return 1, nil
+	}
+
 	databases := s.dbConfig.Database.Databases
 
 	// If no databases specified, discover all databases
@@ -177,5 +189,100 @@ func (s *Service) backupDatabase(database string) error {
 	}
 
 	s.logger.Info("Backup stored successfully: %s (%d bytes compressed)", filename, compressedSize)
+	return nil
+}
+
+func (s *Service) backupFullServer() error {
+	timestamp := time.Now().Format("2006-01-02_15-04-05")
+	filename := fmt.Sprintf("full_dump_%s.sql.gz", timestamp)
+
+	// Check if pg_dumpall is available - try multiple locations
+	var pgDumpallPath string
+	possiblePaths := []string{
+		"pg_dumpall",
+		"/usr/bin/pg_dumpall",
+		"/usr/libexec/postgresql/pg_dumpall",
+	}
+
+	for _, path := range possiblePaths {
+		if _, err := exec.LookPath(path); err == nil {
+			pgDumpallPath = path
+			break
+		}
+	}
+
+	if pgDumpallPath == "" {
+		s.logger.Error("pg_dumpall not found in any expected location. Full dump requires PostgreSQL client tools to be installed.")
+		return fmt.Errorf("pg_dumpall not available")
+	}
+
+	s.logger.Info("Using pg_dumpall from: %s", pgDumpallPath)
+
+	// Use pg_dumpall to create a full cluster dump including all databases, roles, and tablespaces
+	cmd := exec.Command(pgDumpallPath,
+		"-h", s.dbConfig.Database.Host,
+		"-p", fmt.Sprintf("%d", s.dbConfig.Database.Port),
+		"-U", s.dbConfig.Database.User,
+		"--no-password",
+	)
+
+	if s.dbConfig.Database.Password != "" {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("PGPASSWORD=%s", s.dbConfig.Database.Password))
+		// Also add the current environment to ensure PATH is preserved
+		cmd.Env = append(cmd.Env, "PATH=/usr/libexec/postgresql:/usr/bin:/usr/sbin:/bin:/sbin")
+	} else {
+		cmd.Env = []string{"PATH=/usr/libexec/postgresql:/usr/bin:/usr/sbin:/bin:/sbin"}
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	s.logger.Info("Executing pg_dumpall for full server dump")
+	start := time.Now()
+
+	err := cmd.Run()
+	if err != nil {
+		s.logger.Error("pg_dumpall failed: %v, stderr: %s", err, stderr.String())
+		s.logger.Error("This might indicate missing PostgreSQL client tools or insufficient permissions")
+		s.logger.Error("Consider using individual database backups (set full_dump: false) if pg_dumpall is not available")
+		return fmt.Errorf("pg_dumpall failed: %w", err)
+	}
+
+	duration := time.Since(start)
+	s.logger.Info("pg_dumpall completed in %v", duration)
+
+	if stderr.Len() > 0 {
+		s.logger.Warning("pg_dumpall warnings: %s", stderr.String())
+	}
+
+	var compressed bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressed)
+	_, err = gzipWriter.Write(stdout.Bytes())
+	if err != nil {
+		s.logger.Error("Failed to compress full dump: %v", err)
+		return fmt.Errorf("failed to compress full dump: %w", err)
+	}
+	err = gzipWriter.Close()
+	if err != nil {
+		s.logger.Error("Failed to close gzip writer for full dump: %v", err)
+		return fmt.Errorf("failed to close gzip writer: %w", err)
+	}
+
+	originalSize := stdout.Len()
+	compressedSize := compressed.Len()
+	compressionRatio := float64(compressedSize) / float64(originalSize) * 100
+
+	s.logger.Info("Full dump compressed: %s (original: %d bytes, compressed: %d bytes, ratio: %.1f%%)",
+		filename, originalSize, compressedSize, compressionRatio)
+
+	s.logger.Info("Storing full dump file: %s", filename)
+	err = s.storage.Store(filename, &compressed)
+	if err != nil {
+		s.logger.Error("Failed to store full dump: %v", err)
+		return fmt.Errorf("failed to store full dump: %w", err)
+	}
+
+	s.logger.Info("Full dump stored successfully: %s (%d bytes compressed)", filename, compressedSize)
 	return nil
 }
